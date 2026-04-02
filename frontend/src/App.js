@@ -1,23 +1,70 @@
-import logo from './logo.svg';
-import './App.css';
+import { useState, useEffect } from 'react';
+
+const API = 'http://localhost:3001';
 
 function App() {
+  const [todos, setTodos] = useState([]);
+  const [text, setText] = useState('');
+
+  useEffect(() => {
+    fetch(`${API}/todos`)
+      .then(res => res.json())
+      .then(data => setTodos(data));
+  }, []);
+
+  const addTodo = () => {
+    if (!text.trim()) return;
+    fetch(`${API}/todos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    })
+      .then(res => res.json())
+      .then(todo => {
+        setTodos([...todos, todo]);
+        setText('');
+      });
+  };
+
+  const toggleTodo = (id) => {
+    fetch(`${API}/todos/${id}`, { method: 'PUT' })
+      .then(res => res.json())
+      .then(updated => setTodos(todos.map(t => t.id === updated.id ? updated : t)));
+  };
+
+  const deleteTodo = (id) => {
+    fetch(`${API}/todos/${id}`, { method: 'DELETE' })
+      .then(() => setTodos(todos.filter(t => t.id !== id)));
+  };
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div style={{ maxWidth: '500px', margin: '40px auto', fontFamily: 'sans-serif' }}>
+      <h1>To-Do App</h1>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+        <input
+          value={text}
+          onChange={e => setText(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && addTodo()}
+          placeholder="Add a new task..."
+          style={{ flex: 1, padding: '8px', fontSize: '16px' }}
+        />
+        <button onClick={addTodo} style={{ padding: '8px 16px', fontSize: '16px' }}>Add</button>
+      </div>
+      <ul style={{ listStyle: 'none', padding: 0 }}>
+        {todos.map(todo => (
+          <li key={todo.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+            <input
+              type="checkbox"
+              checked={todo.done}
+              onChange={() => toggleTodo(todo.id)}
+            />
+            <span style={{ flex: 1, textDecoration: todo.done ? 'line-through' : 'none', color: todo.done ? '#999' : '#000' }}>
+              {todo.text}
+            </span>
+            <button onClick={() => deleteTodo(todo.id)} style={{ color: 'red', border: 'none', background: 'none', cursor: 'pointer', fontSize: '16px' }}>✕</button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
